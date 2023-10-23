@@ -1,12 +1,8 @@
 import models from '../models/index.js'
 import { snakeToCamel, getDefinedValues } from '../helpers/index.js'
 import { ValidationError, Op } from 'sequelize'
-import fileUpload from 'express-fileupload'
 import XLSX from 'xlsx'
 import Joi from 'joi'
-// import fs from 'fs'
-import { deleteDirectory } from '../utils/files.js'
-// import { TPM } from '../constants/global.js'
 
 const { posts, user } = models
 export default {
