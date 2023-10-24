@@ -1,0 +1,25 @@
+{
+  "active": true,
+  "tables": {
+    "roles": {
+      "users": {
+        "admin": "ALL"
+      }
+    },
+    "stores": {
+      "users": {
+        "admin": "ALL"
+      }
+    },
+    "tables": {
+      "users": {
+        "admin": "ALL"
+      }
+    },
+    "categories": {
+      "users": {
+        "admin": "ALL"
+      }
+    }
+  }
+}

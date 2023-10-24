@@ -17,13 +17,17 @@ async function register(req, res) {
       res.send({ field: 'password', type: 'isNull' })
       return
     }
-    const { first_name, last_name, email, password } = req.body
+    const { first_name, last_name, email, gender, image, password, role_id, store_id } = req.body
     const encryptedPassword = await bcrypt.hash(password, 10)
     const params = {
       first_name,
       last_name,
       email,
+      gender,
+      image,
       password: encryptedPassword,
+      role_id,
+      store_id
     }
     const resUser = await user.create(params)
     const token = Jwt.sign(
@@ -34,7 +38,7 @@ async function register(req, res) {
       }
     )
     const resObject = {
-      data: { id: resUser.id, first_name, last_name, email },
+      data: { id: resUser.id, first_name, last_name, email, gender, image },
       token,
     }
     res.send(resObject)
@@ -61,19 +65,21 @@ async function register(req, res) {
 async function login(req, res) {
   try {
     const { email, password } = req.body
-    const resUser = await user.findOne({ email: email }).select('+password')
+    const resUser = await user.findOne({ email: email }).select('+password').populate({ path: 'store_id role_id' })
     if (resUser && (await bcrypt.compare(password, resUser.password))) {
-      const { id, first_name, last_name } = resUser
+      const { id, store_id, role_id } = resUser
       const token = Jwt.sign(
-        { user_id: id, first_name, last_name, email },
+        { user_id: id, store_id: store_id.id, role_id: role_id.id },
         'TOKEN-KEY',
         {
           expiresIn: '24h',
         }
       )
+      resUser.password = 'hidden'
       const resObject = {
-        data: { id, first_name, last_name, email },
+        user: resUser,
         token,
+        message: 'Login is successful.'
       }
       res.send(resObject)
       return
