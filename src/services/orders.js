@@ -1,7 +1,6 @@
 import models from '../models/index.js'
-import { snakeToCamel, getDefinedValues } from '../helpers/index.js'
 
-const { products, productCustomizes, user } = models
+const { products, productCustomizes, orders, orderDetails, user } = models
 export default {
   getAll,
   getById,
@@ -33,17 +32,29 @@ async function getById(req, res) {
   res.status(400).send({ success: false, message: "Bad request." })
 }
 async function create(req, res) {
-  const productData = { ...req.body }
-  productData.store_id = req.user.store_id
-  productData.product_customizes = []
-  const resProduct = await products.create(productData)
-  req.body._id = resProduct.id
-  for (const prodCus of req.body.product_customizes) {
-    prodCus.product_id = resProduct.id
-    const resProdCus = await productCustomizes.create(prodCus)
-    productData.product_customizes.push(resProdCus.id)
+  const { table_id, datetime, product_customizes } = req.body;
+  const orderCreate = { is_completed: false, is_paid: false, datetime, table_id, store_id: req.user.store_id }
+  const resOrder = await orders.create(orderCreate)
+  const orderDetIds = []
+  for (const { product_customize_id, quantity } of product_customizes) {
+    const redProdCus = await productCustomizes.findById(product_customize_id)
+    const orderDetCreate = { quantity, price: redProdCus.price * quantity, product_customize_id, order_id: resOrder.id }
+    const resOrderDet = await orderDetails.create(orderDetCreate)
+    orderDetIds.push(resOrderDet.id)
   }
-  await products.findByIdAndUpdate(resProduct.id, { product_customizes: productData.product_customizes})
+  await orders.findByIdAndUpdate(resOrder.id, { order_details: orderDetIds })
+  // res.send()
+  // const productData = { ...req.body }
+  // productData.store_id = req.user.store_id
+  // productData.product_customizes = []
+  // const resProduct = await products.create(productData)
+  // req.body._id = resProduct.id
+  // for (const prodCus of req.body.product_customizes) {
+  //   prodCus.product_id = resProduct.id
+  //   const resProdCus = await productCustomizes.create(prodCus)
+  //   productData.product_customizes.push(resProdCus.id)
+  // }
+  // await products.findByIdAndUpdate(resProduct.id, { product_customizes: productData.product_customizes})
   res.send({ success: true, message: `products created successful.`, data: req.body })
 }
 async function update(req, res) {
@@ -56,7 +67,7 @@ async function update(req, res) {
       if (prodCus.product_customize_id) {
         await productCustomizes.findByIdAndUpdate(prodCus.product_customize_id, prodCus)
       } else {
-        const resProdCus = await productCustomizes.create({ ...prodCus, product_id: req.params.id})
+        const resProdCus = await productCustomizes.create(prodCus)
         resProd.product_customizes.push(resProdCus.id)
       }
     }

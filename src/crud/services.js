@@ -1,4 +1,6 @@
 import { model } from 'mongoose'
+import models from '../models/index.js'
+const { products } = models
 
 export default function initServices(tableName, config) {
   const models = model(tableName)
@@ -38,6 +40,9 @@ export default function initServices(tableName, config) {
       const resData = await models.findByIdAndDelete(req.params.id)
       if (!resData) {
         return res.status(404).send({ success: false, message: `Not Found.` })
+      }
+      if (tableName === 'categories') {
+        await products.deleteMany({ category_id: req.params.id })
       }
       return res.status(200).send({ success: true, message: `${tableName} deleted successful.` })
     }

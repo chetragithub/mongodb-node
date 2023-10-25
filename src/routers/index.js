@@ -1,9 +1,11 @@
 import middleware from '../middleware/auth.js'
 import initPostsRoutes from './posts.js'
 import initProductsRoutes from './products.js'
+import initOrdersRoutes from './orders.js'
 import initAuthRoutes from './auth.js'
 export default function initAppRoutes(app) {
   app.use('/api/products', middleware, initProductsRoutes())
+  app.use('/api/orders', middleware, initOrdersRoutes())
   app.use('/api/posts', middleware, initPostsRoutes())
   app.use('/api/auth', initAuthRoutes(middleware))
 }

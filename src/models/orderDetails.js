@@ -20,7 +20,7 @@ const OrderDetailScema = {
 }
 
 const OrderDetail = model(
-  'products',
+  'order_details',
   new Schema(OrderDetailScema, {
     timestamps: true,
     versionKey: false,
