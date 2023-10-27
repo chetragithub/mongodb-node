@@ -19,6 +19,5 @@ wss.on('connection', (ws) => {
   })
   console.log('client connected.')
 })
-console.log(wss);
 
 export default app
