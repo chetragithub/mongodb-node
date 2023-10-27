@@ -8,7 +8,7 @@ app.use(cors('*'))
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
 
-const wss = new WebSocketServer({ port: process.env.PORT || 3000 })
+const wss = new WebSocketServer({ port: 10000 })
 const clients = []
 wss.on('connection', (ws) => {
   clients.push(ws)
