@@ -1,75 +1,97 @@
 import models from '../models/index.js'
 import Jwt from 'jsonwebtoken'
 import bcrypt from 'bcryptjs'
-import { ValidationError } from 'sequelize'
+import { validRole } from '../utils/role.js'
 import { snakeToCamel, getDefinedValues } from '../helpers/index.js'
-const { user } = models
+const { user, roles } = models
 export default {
   register,
   login,
-  getUser,
+  mySelf,
+  getStaff,
+  updateStaff,
+  deleteStaff,
 }
 
 async function register(req, res) {
   try {
     if (!req.body.password) {
-      res.status(400)
-      res.send({ field: 'password', type: 'isNull' })
-      return
+      return res
+        .status(400)
+        .send({ success: false, field: 'password', type: 'isNull' })
     }
-    const { first_name, last_name, email, gender, image, password, role_id, store_id } = req.body
+    const validRoleRe = validRole(req.user.role_name)
+    if (!validRoleRe.success) {
+      return res.status(403).send(validRoleRe)
+    }
+    const { first_name, last_name, email, gender, password, role_id } = req.body
+    const findRole = await roles.findById(role_id)
+    if (findRole.name === 'admin' || findRole.name === 'restaurant_owner') {
+      return res.status(400).send({ success: false, message: 'Bad request.' })
+    }
+    const userByEmail = await user.find({ email: email })
+    if (userByEmail.length > 0) {
+      return res.status(409).send({ success: false, message: 'Bad request.' })
+    }
     const encryptedPassword = await bcrypt.hash(password, 10)
     const params = {
       first_name,
       last_name,
       email,
       gender,
-      image,
       password: encryptedPassword,
       role_id,
-      store_id
+      store_id:
+        req.user.role_name === 'admin' ? req.body.store_id : req.user.store_id,
     }
     const resUser = await user.create(params)
     const token = Jwt.sign(
-      { user_id: resUser.id, first_name, last_name, email },
+      {
+        user_id: resUser.id,
+        store_id: params.store_id,
+        role_id: params.role_id,
+      },
       'TOKEN-KEY',
       {
         expiresIn: '24h',
       }
     )
     const resObject = {
-      data: { id: resUser.id, first_name, last_name, email, gender, image },
+      success: true,
+      message: 'Regiter is successful.',
+      user: {
+        _id: resUser.id,
+        first_name,
+        last_name,
+        email,
+        gender,
+        role_id,
+        store_id: params.store_id,
+      },
       token,
     }
     res.send(resObject)
   } catch (error) {
-    if (error.name === 'SequelizeUniqueConstraintError') {
-      res.status(409)
-      res.send({ message: 'User already exist. Please login!' })
-      return
-    }
-    const errorObject = {}
-    if (error instanceof ValidationError) {
-      errorObject.field = error.errors[0].path
-      errorObject.type = snakeToCamel(error.errors[0].validatorKey)
-      res.status(400)
-      res.send(errorObject)
-      return
-    }
-    console.log(error)
-    res.status(500)
-    res.send(errorObject)
+    res.status(400).send(errorObject)
   }
 }
 
 async function login(req, res) {
   try {
     const { email, password } = req.body
-    const resUser = await user.findOne({ email: email }).select('+password').populate({ path: 'store_id role_id' })
+    const resUser = await user
+      .findOne({ email: email })
+      .select('+password')
+      .populate({ path: 'store_id role_id' })
     if (resUser && (await bcrypt.compare(password, resUser.password))) {
       const { id, store_id, role_id } = resUser
       const token = Jwt.sign(
-        { user_id: id, store_id: store_id.id, role_id: role_id.id },
+        {
+          user_id: id,
+          store_id: store_id.id,
+          role_id: role_id.id,
+          role_name: role_id.name,
+        },
         'TOKEN-KEY',
         {
           expiresIn: '24h',
@@ -77,23 +99,85 @@ async function login(req, res) {
       )
       resUser.password = 'hidden'
       const resObject = {
+        success: true,
         user: resUser,
         token,
-        message: 'Login is successful.'
+        message: 'Login is successful.',
       }
-      res.send(resObject)
-      return
+      return res.send(resObject)
     }
-    res.status(400)
-    res.send({ message: 'Invalid credentials.' })
+    res.status(400).send({ success: false, message: 'Invalid credentials.' })
   } catch (error) {
-    console.log(error)
-    res.status(400)
-    res.send(error)
+    res.status(400).send({ success: false, error })
   }
 }
 
-async function getUser(req, res) {
-  const { user_id, first_name, last_name, email } = req.user
-  res.send({ user_id, first_name, last_name, email })
+async function mySelf(req, res) {
+  const resUser = await user
+    .findById(req.user.user_id)
+    .populate({ path: 'role_id', select: '-createdAt -updatedAt -users' })
+    .populate({ path: 'store_id', select: '-createdAt -updatedAt' })
+  res.send({ success: true, data: resUser })
+}
+
+async function getStaff(req, res) {
+  const validRoleRe = validRole(req.user.role_name)
+  if (!validRoleRe.success) {
+    return res.status(403).send(validRoleRe)
+  }
+  const resStaff = await user
+    .find({
+      store_id: req.user.store_id,
+      _id: { $nin: [req.user.user_id] },
+    })
+    .populate({ path: 'role_id', select: '-createdAt -updatedA -users' })
+
+  res.send({ success: true, data: resStaff })
+}
+
+async function updateStaff(req, res) {
+  if (req.params.id.length !== 24) {
+    res.status(400).send({ success: false, message: 'Bad request.' })
+  }
+  const findUser = await user.findById(req.params.id)
+  if (!findUser)
+    return res.status(404).send({ success: false, message: `Not Found.` })
+
+  const { first_name, last_name, email, gender, image, password, role_id } =
+    req.body
+  const userByEmail = await user.find({ email: email })
+
+  if (userByEmail.length > 0) {
+    if (userByEmail[0].id !== req.params.id)
+      return res.status(409).send({ success: false, message: 'Bad request.' })
+  }
+  const userObj = { first_name, last_name, email, gender, role_id }
+  if (password) userObj.password = await bcrypt.hash(password, 10)
+  if (image) userObj.image = image
+  const resUser = await user.findByIdAndUpdate(req.params.id, userObj)
+  Object.keys(userObj).forEach((key) => {
+    resUser[key] = userObj[key]
+  })
+  res.send({
+    success: true,
+    message: 'User updated successful.',
+    data: resUser,
+  })
+}
+
+async function deleteStaff(req, res) {
+  const validRoleRe = validRole(req.user.role_name)
+  if (!validRoleRe.success) {
+    return res.status(403).send(validRoleRe)
+  }
+  if (req.params.id.length === 24) {
+    const resData = await user.findByIdAndDelete(req.params.id)
+    if (!resData) {
+      return res.status(404).send({ success: false, message: `Not Found.` })
+    }
+    return res
+      .status(200)
+      .send({ success: true, message: `User deleted successful.` })
+  }
+  res.status(400).send({ success: false, message: 'Bad request.' })
 }

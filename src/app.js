@@ -9,13 +9,15 @@ app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
 
 const wss = new WebSocketServer({ port: 3000 })
-
+const clients = []
 wss.on('connection', (ws) => {
+  clients.push(ws)
   ws.on('message', (msg) => {
-    console.log(`recieved message: ${msg}`)
+    for (const client of clients) {
+      client.send(JSON.stringify(JSON.parse(msg)))
+    }
   })
-  ws.send('Hello, client!')
-  console.log('Connect!!')
+  console.log('client connected.')
 })
 
 export default app

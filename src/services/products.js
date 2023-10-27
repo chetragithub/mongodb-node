@@ -1,5 +1,6 @@
 import models from '../models/index.js'
 import { snakeToCamel, getDefinedValues } from '../helpers/index.js'
+import { validRole } from '../utils/role.js'
 
 const { products, productCustomizes, user } = models
 export default {
@@ -33,6 +34,10 @@ async function getById(req, res) {
   res.status(400).send({ success: false, message: "Bad request." })
 }
 async function create(req, res) {
+  const validRoleRe = validRole(req.user.role_name)
+  if (!validRoleRe.success) {
+    return res.status(403).send(validRoleRe)
+  }
   const productData = { ...req.body }
   productData.store_id = req.user.store_id
   productData.product_customizes = []
@@ -47,6 +52,10 @@ async function create(req, res) {
   res.send({ success: true, message: `products created successful.`, data: req.body })
 }
 async function update(req, res) {
+  const validRoleRe = validRole(req.user.role_name)
+  if (!validRoleRe.success) {
+    return res.status(403).send(validRoleRe)
+  }
   if (req.params.id.length === 24) {
     const resProd = await products.findById(req.params.id)
     if (!resProd) {
@@ -67,6 +76,10 @@ async function update(req, res) {
   res.status(400).send({ success: false, message: "Bad request." })
 }
 async function destroy(req, res) {
+  const validRoleRe = validRole(req.user.role_name)
+  if (!validRoleRe.success) {
+    return res.status(403).send(validRoleRe)
+  }
   if (req.params.id.length === 24) {
     const resData = await products.findByIdAndDelete(req.params.id)
     if (!resData) {
