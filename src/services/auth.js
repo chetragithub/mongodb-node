@@ -1,12 +1,17 @@
 import models from '../models/index.js'
 import Jwt from 'jsonwebtoken'
 import bcrypt from 'bcryptjs'
+import transporter from '../common/mailer/index.js'
 import { validRole } from '../utils/role.js'
 import { snakeToCamel, getDefinedValues } from '../helpers/index.js'
 const { user, roles } = models
 export default {
   register,
   login,
+  sendPwd,
+  checkPwd,
+  resetPwd,
+  changePwd,
   mySelf,
   getStaff,
   updateStaff,
@@ -106,9 +111,103 @@ async function login(req, res) {
       }
       return res.send(resObject)
     }
-    res.status(400).send({ success: false, message: 'Invalid credentials.' })
+    res.status(404).send({ success: false, message: 'Invalid credentials.' })
   } catch (error) {
     res.status(400).send({ success: false, error })
+  }
+}
+
+async function sendPwd(req, res) {
+  const { email } = req.body
+  const resUser = await user.findOne({ email: email })
+  if (!resUser)
+    return res.status(404).send({ success: false, message: 'Invalid email.' })
+  try {
+    const token = Jwt.sign(
+      {
+        email: email,
+      },
+      'EMAIL-KEY',
+      {
+        expiresIn: '5min',
+      }
+    )
+    const mailOptions = {
+      from: 'hongchetra12@gmail.com',
+      to: email,
+      subject: 'Recover Password',
+      html: `
+      <a href="http://localhost:8080/reset_password/${token}">Reset Password</a>
+      `,
+    }
+    await transporter.sendMail(mailOptions)
+    res.send({ success: true, message: 'Send email successful.' })
+  } catch (error) {
+    res
+      .status(500)
+      .send({ success: false, message: 'Something wrong while sending email.' })
+  }
+}
+
+async function checkPwd(req, res) {
+  try {
+    const { token } = req.body
+    const decode = Jwt.verify(token, 'EMAIL-KEY')
+    res.send({
+      success: true,
+      message: `Found email successful.`,
+      data: {
+        email: decode.email,
+      },
+    })
+  } catch (error) {
+    res.status(404).send({ success: false, message: 'Invalid token.' })
+  }
+}
+
+async function resetPwd(req, res) {
+  try {
+    const { token, password } = req.body
+    const decode = Jwt.verify(token, 'EMAIL-KEY')
+    const encryptedPassword = await bcrypt.hash(password, 10)
+    await user.findOneAndUpdate(
+      { email: decode.email },
+      { password: encryptedPassword }
+    )
+    res.send({
+      success: true,
+      message: `Change password for ${decode.email} successful.`,
+    })
+  } catch (error) {
+    res.status(404).send({ success: false, message: 'Invalid token.' })
+  }
+}
+
+async function changePwd(req, res) {
+  try {
+    const { old_pwd, new_pwd } = req.body
+    const resUser = await user.findById(req.user.user_id).select('+password')
+    if (await bcrypt.compare(old_pwd, resUser.password)) {
+      const encryptedPassword = await bcrypt.hash(new_pwd, 10)
+      await user.findByIdAndUpdate(req.user.user_id, {
+        password: encryptedPassword,
+      })
+      return res.send({
+        success: true,
+        message: `Change password successful.`,
+      })
+    }
+    res.status(400).send({
+      success: false,
+      message: 'Bad request.',
+    })
+  } catch (error) {
+    res
+      .status(404)
+      .send({
+        success: false,
+        message: 'Something wrong while changing password.',
+      })
   }
 }
 
@@ -137,7 +236,7 @@ async function getStaff(req, res) {
 
 async function updateStaff(req, res) {
   if (req.params.id.length !== 24) {
-    res.status(400).send({ success: false, message: 'Bad request.' })
+    return res.status(400).send({ success: false, message: 'Bad request.' })
   }
   const findUser = await user.findById(req.params.id)
   if (!findUser)
@@ -151,9 +250,10 @@ async function updateStaff(req, res) {
     if (userByEmail[0].id !== req.params.id)
       return res.status(409).send({ success: false, message: 'Bad request.' })
   }
-  const userObj = { first_name, last_name, email, gender, role_id }
+  const userObj = { first_name, last_name, email, gender }
   if (password) userObj.password = await bcrypt.hash(password, 10)
   if (image) userObj.image = image
+  if (role_id) userObj.role_id = role_id
   const resUser = await user.findByIdAndUpdate(req.params.id, userObj)
   Object.keys(userObj).forEach((key) => {
     resUser[key] = userObj[key]

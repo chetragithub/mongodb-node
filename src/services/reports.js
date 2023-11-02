@@ -1,19 +1,22 @@
 import models from '../models/index.js'
 import { validRole } from '../utils/role.js'
-
+import mongoose from 'mongoose'
 const { orders } = models
+const ObjectId = mongoose.Types.ObjectId
+
 export default {
-  filter,
+  moneyReps,
+  productReps,
 }
 
-async function filter(req, res) {
+async function moneyReps(req, res) {
+  const validRoleRe = validRole(req.user.role_name)
+  if (!validRoleRe.success) return res.status(403).send(validRoleRe)
   const resData = await orders.aggregate([
     {
       $match: {
         $and: [
-          // {
-          //   store_id: '65376cc91e2314abaa4551b9',
-          // },
+          { store_id: new ObjectId(req.user.store_id), is_paid: true },
           {
             $expr: {
               $eq: [{ $year: '$datetime' }, Number(req.query.year)],
@@ -49,7 +52,6 @@ async function filter(req, res) {
         _id: {
           year: { $year: '$datetime' },
           month: { $month: '$datetime' },
-          // store_id: '$store_id',
         },
         total_money: {
           $sum: {
@@ -59,20 +61,111 @@ async function filter(req, res) {
       },
     },
     {
+      $project: {
+        _id: 0,
+        month: '$_id.month',
+        total_money: 1,
+      },
+    },
+    {
       $sort: {
-        '_id.month': 1,
+        month: 1,
       },
     },
   ])
-  // .find({ store_id: req.user.store_id })
-  // .populate({ path: 'order_details' })
-  // resData.forEach( async (product, index) => {
-  //   console.log(product);
-  //   resData[index].product_customizes = await productCustomizes.find({ product_id: product.id })
-  //   // product.product_customizes = await productCustomizes.find({ product_id: product.id })
-  // });
-  // let prods = [...resData]
-  // prods[0].product_customizes = {name: 'oop'}
-  // console.log(prods[0]);
-  res.send({ success: true, message: `Get reports successful.`, data: resData })
+  res.send({
+    success: true,
+    message: `Get money reports successful.`,
+    data: resData,
+  })
+}
+
+async function productReps(req, res) {
+  const validRoleRe = validRole(req.user.role_name)
+  if (!validRoleRe.success) return res.status(403).send(validRoleRe)
+  const resData = await orders.aggregate([
+    {
+      $match: {
+        $and: [
+          { store_id: new ObjectId(req.user.store_id), is_paid: true },
+          {
+            $expr: {
+              $and: [
+                { $eq: [{ $month: '$datetime' }, Number(req.query.month)] },
+                { $eq: [{ $year: '$datetime' }, Number(req.query.year)] }
+              ]
+            },
+          },
+        ],
+      },
+    },
+    {
+      $lookup: {
+        from: 'order_details',
+        localField: '_id',
+        foreignField: 'order_id',
+        as: 'order_detail',
+      },
+    },
+    {
+      $unwind: '$order_detail',
+    },
+    {
+      $lookup: {
+        from: 'product_customizes',
+        localField: 'order_detail.product_customize_id',
+        foreignField: '_id',
+        as: 'product_customize',
+      },
+    },
+    {
+      $unwind: '$product_customize',
+    },
+    {
+      $lookup: {
+        from: 'products',
+        localField: 'product_customize.product_id',
+        foreignField: '_id',
+        as: 'product',
+      },
+    },
+    {
+      $unwind: '$product',
+    },
+    {
+      $project: {
+        product: '$product.name',
+        product_total: '$order_detail.quantity',
+      },
+    },
+    {
+      $group: {
+        _id: {
+          year: '$year',
+          month: '$month',
+          product: '$product',
+        },
+        total_orders: {
+          $sum: '$product_total',
+        },
+      },
+    },
+    {
+      $project: {
+        _id: 0,
+        product_name: '$_id.product',
+        total_orders: 1,
+      },
+    },
+    {
+      $sort: {
+        total_orders: 1,
+      },
+    },
+  ])
+  res.send({
+    success: true,
+    message: `Get product reports successful.`,
+    data: resData,
+  })
 }

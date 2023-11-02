@@ -23,6 +23,11 @@ const StoreScema = {
       select: false
     },
   ],
+  disabled: {
+    type: Boolean,
+    default: false,
+    select: false
+  },
 }
 const Store = model(
   'stores',

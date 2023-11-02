@@ -33,6 +33,8 @@ export default {
 //   })
 // }
 async function filter(req, res) {
+  // await orders.deleteMany()
+  // await orderDetails.deleteMany()
   const options = {
     store_id: req.user.store_id,
   }

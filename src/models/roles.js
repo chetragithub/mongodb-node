@@ -6,12 +6,11 @@ const RoleScema = {
     maxlength: 20,
     require: true,
   },
-  // users: [
-  //   {
-  //     type: Schema.Types.ObjectId,
-  //     ref: 'users'
-  //   },
-  // ],
+  disabled: {
+    type: Boolean,
+    default: false,
+    select: false
+  },
 }
 
 const Role = model(

@@ -39,6 +39,11 @@ const ProductScema = {
       ref: 'product_customizes'
     },
   ],
+  disabled: {
+    type: Boolean,
+    default: false,
+    select: false
+  },
 }
 
 const Product = model(

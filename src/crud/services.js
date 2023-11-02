@@ -11,8 +11,13 @@ export default function initServices(tableName, config) {
     // await orderDetails.deleteMany()
     const resData =
       tableName === 'roles'
-        ? await models.find({ name: { $nin: ["admin", "restaurant_owner"] } })
-        : await models.find({ store_id: req.user.store_id }).select('-store_id')
+        ? await models.find({
+            name: { $nin: ['admin', 'restaurant_owner'] },
+            disabled: false,
+          })
+        : await models
+            .find({ store_id: req.user.store_id, disabled: false })
+            .select('-store_id -disabled')
     res.send({
       success: true,
       message: `Get all ${tableName} successful.`,
@@ -35,9 +40,7 @@ export default function initServices(tableName, config) {
   }
   async function create(req, res) {
     const validRoleRe = validRole(req.user.role_name)
-    if (!validRoleRe.success) {
-      return res.status(403).send(validRoleRe)
-    }
+    if (!validRoleRe.success) return res.status(403).send(validRoleRe)
     const createData = req.body
     createData.store_id = req.user.store_id
     const resData = await models.create(createData)
@@ -49,34 +52,36 @@ export default function initServices(tableName, config) {
   }
   async function update(req, res) {
     const validRoleRe = validRole(req.user.role_name)
-    if (!validRoleRe.success) {
-      return res.status(403).send(validRoleRe)
-    }
-    if (req.params.id.length === 24) {
-      const resData = await models.findByIdAndUpdate(req.params.id, req.body)
+    const id = tableName === 'stores' ? req.user.store_id : req.params.id
+    if (!validRoleRe.success) return res.status(403).send(validRoleRe)
+    if (id.length === 24) {
+      const resData = await models.findByIdAndUpdate(id, req.body)
       if (!resData) {
         return res.status(404).send({ success: false, message: `Not Found.` })
       }
       return res.status(200).send({
         success: true,
         message: `${tableName} updated successful.`,
-        data: await models.findById(req.params.id),
+        data: await models.findById(id).select('-disabled'),
       })
     }
     res.status(400).send({ success: false, message: 'Bad request.' })
   }
   async function destroy(req, res) {
     const validRoleRe = validRole(req.user.role_name)
-    if (!validRoleRe.success) {
-      return res.status(403).send(validRoleRe)
-    }
+    if (!validRoleRe.success) return res.status(403).send(validRoleRe)
     if (req.params.id.length === 24) {
-      const resData = await models.findByIdAndDelete(req.params.id)
+      const resData = await models.findByIdAndUpdate(req.params.id, {
+        disabled: true,
+      })
       if (!resData) {
         return res.status(404).send({ success: false, message: `Not Found.` })
       }
       if (tableName === 'categories') {
-        await products.deleteMany({ category_id: req.params.id })
+        await products.updateMany(
+          { category_id: req.params.id },
+          { disabled: true }
+        )
       }
       return res
         .status(200)

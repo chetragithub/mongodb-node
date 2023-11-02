@@ -4,9 +4,13 @@ export default function initRoutes(middleware) {
   const router = Router()
   router.post('/register', middleware, authService.register)
   router.post('/login', authService.login)
+  router.post('/send-pwd', authService.sendPwd)
+  router.post('/check-pwd', authService.checkPwd)
+  router.post('/reset-pwd', authService.resetPwd)
+  router.post('/change-pwd', middleware, authService.changePwd)
   router.get('/user', middleware, authService.mySelf)
   router.get('/staff', middleware, authService.getStaff)
-  router.put('/staff/:id', middleware, authService.updateStaff)
+  router.put('/user/:id', middleware, authService.updateStaff)
   router.delete('/staff/:id', middleware, authService.deleteStaff)
   return router
 }

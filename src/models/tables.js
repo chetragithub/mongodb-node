@@ -10,6 +10,11 @@ const TableScema = {
     type: Schema.Types.ObjectId,
     ref: 'stores',
   },
+  disabled: {
+    type: Boolean,
+    default: false,
+    // select: false
+  },
 }
 
 const Table = model(
