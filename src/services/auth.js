@@ -135,9 +135,14 @@ async function sendPwd(req, res) {
     const mailOptions = {
       from: 'hongchetra12@gmail.com',
       to: email,
-      subject: 'Recover Password',
+      subject: 'Booking Now | Recover Password Account',
       html: `
-      <a href="${process.env.CORE_URL}/reset_password/${token}">Reset Password</a>
+      <p>Please reset a new password for account <span style="font-weight: bold; text-decoration: none;">${email}</span>.</p>
+      <button style="background: #F25657; border: none; border-radius: 10px; padding: 8px 16px;"><a style="text-decoration: none; color:white;" href="${process.env.CORE_URL}/reset_password/${token}">Reset Password</a></button>
+      <br>
+      <p>Thanks for using Booking Now.</p>
+      <p>Sincerely yours,</p>
+      <p style="font-weight: bold;">Booking Now</p>
       `,
     }
     await transporter.sendMail(mailOptions)
