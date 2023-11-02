@@ -137,7 +137,7 @@ async function sendPwd(req, res) {
       to: email,
       subject: 'Recover Password',
       html: `
-      <a href="http://localhost:8080/reset_password/${token}">Reset Password</a>
+      <a href="${process.env.CORE_URL}/reset_password/${token}">Reset Password</a>
       `,
     }
     await transporter.sendMail(mailOptions)
