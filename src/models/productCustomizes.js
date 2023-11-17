@@ -8,7 +8,6 @@ const ProductCustomizeScema = {
   },
   price: {
     type: Number,
-    maxlength: 50,
     require: true,
   },
   product_id: {

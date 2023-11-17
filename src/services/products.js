@@ -43,7 +43,7 @@ async function create(req, res) {
     productData.product_customizes.push(resProdCus.id)
   }
   await products.findByIdAndUpdate(resProduct.id, { product_customizes: productData.product_customizes})
-  res.send({ success: true, message: `products created successful.`, data: req.body })
+  res.send({ success: true, message: `Product created successful.`, data: req.body })
 }
 async function update(req, res) {
   const validRoleRe = validRole(req.user.role_name)
@@ -65,7 +65,7 @@ async function update(req, res) {
     }
     req.body.product_customizes = resProd.product_customizes
     await products.findByIdAndUpdate(req.params.id, req.body)
-    return res.status(200).send({ success: true, message: `products updated successful.`, data: await products.findById(req.params.id).populate('category_id product_customizes') })
+    return res.status(200).send({ success: true, message: `Product updated successful.`, data: await products.findById(req.params.id).populate('category_id product_customizes') })
   }
   res.status(400).send({ success: false, message: "Bad request." })
 }
@@ -78,7 +78,7 @@ async function destroy(req, res) {
       return res.status(404).send({ success: false, message: `Not Found.` })
     }
     // await productCustomizes.deleteMany({ product_id: req.params.id })
-    return res.status(200).send({ success: true, message: `products deleted successful.` })
+    return res.status(200).send({ success: true, message: `Product deleted successful.` })
   }
   res.status(400).send({ success: false, message: "Bad request." })
 }

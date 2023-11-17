@@ -24,7 +24,7 @@ const UserScema = {
   },
   gender: {
     type: String,
-    maxlength: 20,
+    maxlength: 6,
     require: true,
   },
   image: {

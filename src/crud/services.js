@@ -17,7 +17,7 @@ export default function initServices(tableName, config) {
           })
         : await models
             .find({ store_id: req.user.store_id, disabled: false })
-            .select('-store_id -disabled')
+            .select('-store_id')
     res.send({
       success: true,
       message: `Get all ${tableName} successful.`,
@@ -62,7 +62,7 @@ export default function initServices(tableName, config) {
       return res.status(200).send({
         success: true,
         message: `${tableName} updated successful.`,
-        data: await models.findById(id).select('-disabled'),
+        data: await models.findById(id),
       })
     }
     res.status(400).send({ success: false, message: 'Bad request.' })

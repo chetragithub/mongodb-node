@@ -13,7 +13,7 @@ const TableScema = {
   disabled: {
     type: Boolean,
     default: false,
-    // select: false
+    select: false
   },
 }
 

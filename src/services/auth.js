@@ -20,11 +20,11 @@ export default {
 
 async function register(req, res) {
   try {
-    if (!req.body.password) {
-      return res
-        .status(400)
-        .send({ success: false, field: 'password', type: 'isNull' })
-    }
+    // if (!req.body.password) {
+    //   return res
+    //     .status(400)
+    //     .send({ success: false, field: 'password', type: 'isNull' })
+    // }
     const validRoleRe = validRole(req.user.role_name)
     if (!validRoleRe.success) {
       return res.status(403).send(validRoleRe)
@@ -113,7 +113,9 @@ async function login(req, res) {
     }
     res.status(404).send({ success: false, message: 'Invalid credentials.' })
   } catch (error) {
-    res.status(400).send({ success: false, error })
+    res
+      .status(500)
+      .send({ success: false, message: 'Something wrong while logining.' })
   }
 }
 
@@ -207,12 +209,10 @@ async function changePwd(req, res) {
       message: 'Bad request.',
     })
   } catch (error) {
-    res
-      .status(404)
-      .send({
-        success: false,
-        message: 'Something wrong while changing password.',
-      })
+    res.status(500).send({
+      success: false,
+      message: 'Something wrong while changing password.',
+    })
   }
 }
 

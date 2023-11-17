@@ -9,12 +9,12 @@ const StoreScema = {
   street: {
     type: String,
     maxlength: 250,
-    require: false,
+    require: true,
   },
   city: {
     type: String,
     maxlength: 250,
-    require: false,
+    require: true,
   },
   users: [
     {
