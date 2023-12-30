@@ -1,13 +1,19 @@
 import { Router } from 'express'
 import orderService from '../services/orders.js'
 import ensureFields from '../middleware/ensure-fields.js'
+import ensurePermissions from '../middleware/ensure-roles.js'
 
 export default function initRoutes() {
   const router = new Router()
   // router.get('/schema', services.getSchema)
-  router.get('/', orderService.filter)
+  router.get(
+    '/',
+    ensurePermissions({ CASHIER: 'GET', CHEF: 'GET' }),
+    orderService.filter
+  )
   router.get(
     '/:id',
+    ensurePermissions({ CASHIER: 'GET', CHEF: 'GET' }),
     ensureFields(
       {
         id: {
@@ -21,6 +27,7 @@ export default function initRoutes() {
   )
   router.post(
     '/',
+    ensurePermissions({ WAITER: 'POST' }),
     ensureFields(
       {
         table_id: {
@@ -53,6 +60,7 @@ export default function initRoutes() {
   )
   router.put(
     '/:id',
+    ensurePermissions({ CASHIER: 'PUT', CHEF: 'PUT' }),
     ensureFields(
       {
         id: {

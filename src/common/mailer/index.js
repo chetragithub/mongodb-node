@@ -1,10 +1,10 @@
 import nodemailer from 'nodemailer'
 const transporter = nodemailer.createTransport({
-  service: 'admin@example.com',
+  service: process.env.MAIL_UER,
   auth: {
-    user: 'admin@example.com',
-    pass: 'secret'
-  }
+    user: process.env.MAIL_UER,
+    pass: process.env.MAIL_SECRET,
+  },
 })
 
 export default transporter

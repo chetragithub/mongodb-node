@@ -1,5 +1,4 @@
 import models from '../models/index.js'
-import { validRole } from '../utils/role.js'
 import mongoose from 'mongoose'
 const { orders } = models
 const ObjectId = mongoose.Types.ObjectId
@@ -10,8 +9,6 @@ export default {
 }
 
 async function moneyReps(req, res) {
-  const validRoleRe = validRole(req.user.role_name)
-  if (!validRoleRe.success) return res.status(403).send(validRoleRe)
   const resData = await orders.aggregate([
     {
       $match: {
@@ -81,8 +78,6 @@ async function moneyReps(req, res) {
 }
 
 async function productReps(req, res) {
-  const validRoleRe = validRole(req.user.role_name)
-  if (!validRoleRe.success) return res.status(403).send(validRoleRe)
   const resData = await orders.aggregate([
     {
       $match: {
@@ -92,8 +87,8 @@ async function productReps(req, res) {
             $expr: {
               $and: [
                 { $eq: [{ $month: '$datetime' }, Number(req.query.month)] },
-                { $eq: [{ $year: '$datetime' }, Number(req.query.year)] }
-              ]
+                { $eq: [{ $year: '$datetime' }, Number(req.query.year)] },
+              ],
             },
           },
         ],

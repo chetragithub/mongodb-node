@@ -71,32 +71,29 @@ async function filter(req, res) {
   })
 }
 async function getById(req, res) {
-  if (req.params.id.length === 24) {
-    const resData = await orders
-      .findById(req.params.id)
-      .populate({ path: 'table_id order_details', select: '_id table_number' })
-      .populate({
-        path: 'order_details',
-        select: '-createdAt -updatedAt -order_id',
+  const resData = await orders
+    .findById(req.params.id)
+    .populate({ path: 'table_id order_details', select: '_id table_number' })
+    .populate({
+      path: 'order_details',
+      select: '-createdAt -updatedAt -order_id',
+      populate: {
+        path: 'product_customize_id',
+        select: '-createdAt -updatedAt',
         populate: {
-          path: 'product_customize_id',
-          select: '-createdAt -updatedAt',
-          populate: {
-            path: 'product_id',
-            select: '-product_customizes -store_id -createdAt -updatedAt',
-          },
+          path: 'product_id',
+          select: '-product_customizes -store_id -createdAt -updatedAt',
         },
-      })
-    if (!resData) {
-      return res.status(404).send({ success: false, message: `Not Found.` })
-    }
-    return res.status(200).send({
-      success: true,
-      message: `Get order successful.`,
-      data: resData,
+      },
     })
+  if (!resData) {
+    return res.status(404).send({ success: false, message: `Not Found.` })
   }
-  res.status(400).send({ success: false, message: 'Bad request.' })
+  return res.status(200).send({
+    success: true,
+    message: `Get order successful.`,
+    data: resData,
+  })
 }
 async function create(req, res) {
   const { table_id, datetime, product_customizes } = req.body
@@ -128,43 +125,42 @@ async function create(req, res) {
   })
 }
 async function update(req, res) {
-  if (req.params.id.length === 24) {
-    const resOrd = await orders
-      .findById(req.params.id)
-      .populate({ path: 'table_id order_details', select: '_id table_number' })
-      .populate({
-        path: 'order_details',
-        select: '-createdAt -updatedAt -order_id',
-        populate: {
-          path: 'product_customize_id',
-          select: '-createdAt -updatedAt',
-          populate: {
-            path: 'product_id',
-            select: '-product_customizes -store_id -createdAt -updatedAt',
-          },
-        },
-      })
-    if (!resOrd) {
-      return res.status(404).send({ success: false, message: `Not Found.` })
-    }
-    const options = {
-      is_completed:
-        req.body.is_completed !== undefined
-          ? req.body.is_completed
-          : resOrd.is_completed,
-      is_paid:
-        req.body.is_paid !== undefined ? req.body.is_paid : resOrd.is_paid,
-    }
-    await orders.findByIdAndUpdate(req.params.id, options)
-    resOrd.is_completed = options.is_completed
-    resOrd.is_paid = options.is_paid
-    return res.status(200).send({
-      success: true,
-      message: `products updated successful.`,
-      data: resOrd,
+  const resOrd = await orders
+    .findOne({
+      _id: req.params.id,
+      store_id: req.user.store_id,
     })
+    .populate({ path: 'table_id order_details', select: '_id table_number' })
+    .populate({
+      path: 'order_details',
+      select: '-createdAt -updatedAt -order_id',
+      populate: {
+        path: 'product_customize_id',
+        select: '-createdAt -updatedAt',
+        populate: {
+          path: 'product_id',
+          select: '-product_customizes -store_id -createdAt -updatedAt',
+        },
+      },
+    })
+  if (!resOrd) {
+    return res.status(404).send({ success: false, message: `Not Found.` })
   }
-  res.status(400).send({ success: false, message: 'Bad request.' })
+  const options = {
+    is_completed:
+      req.body.is_completed !== undefined
+        ? req.body.is_completed
+        : resOrd.is_completed,
+    is_paid: req.body.is_paid !== undefined ? req.body.is_paid : resOrd.is_paid,
+  }
+  await orders.findByIdAndUpdate(req.params.id, options)
+  resOrd.is_completed = options.is_completed
+  resOrd.is_paid = options.is_paid
+  return res.status(200).send({
+    success: true,
+    message: `products updated successful.`,
+    data: resOrd,
+  })
 }
 // async function destroy(req, res) {
 //   if (req.params.id.length === 24) {

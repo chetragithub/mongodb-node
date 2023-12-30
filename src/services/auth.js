@@ -25,10 +25,6 @@ async function register(req, res) {
     //     .status(400)
     //     .send({ success: false, field: 'password', type: 'isNull' })
     // }
-    const validRoleRe = validRole(req.user.role_name)
-    if (!validRoleRe.success) {
-      return res.status(403).send(validRoleRe)
-    }
     const { first_name, last_name, email, gender, password, role_id } = req.body
     const findRole = await roles.findById(role_id)
     if (findRole.name === 'admin' || findRole.name === 'restaurant_owner') {
@@ -225,24 +221,16 @@ async function mySelf(req, res) {
 }
 
 async function getStaff(req, res) {
-  const validRoleRe = validRole(req.user.role_name)
-  if (!validRoleRe.success) {
-    return res.status(403).send(validRoleRe)
-  }
   const resStaff = await user
     .find({
       store_id: req.user.store_id,
       _id: { $nin: [req.user.user_id] },
     })
     .populate({ path: 'role_id', select: '-createdAt -updatedA -users' })
-
   res.send({ success: true, data: resStaff })
 }
 
 async function updateStaff(req, res) {
-  if (req.params.id.length !== 24) {
-    return res.status(400).send({ success: false, message: 'Bad request.' })
-  }
   const findUser = await user.findById(req.params.id)
   if (!findUser)
     return res.status(404).send({ success: false, message: `Not Found.` })
@@ -271,18 +259,11 @@ async function updateStaff(req, res) {
 }
 
 async function deleteStaff(req, res) {
-  const validRoleRe = validRole(req.user.role_name)
-  if (!validRoleRe.success) {
-    return res.status(403).send(validRoleRe)
+  const resData = await user.findByIdAndDelete(req.params.id)
+  if (!resData) {
+    return res.status(404).send({ success: false, message: `Not Found.` })
   }
-  if (req.params.id.length === 24) {
-    const resData = await user.findByIdAndDelete(req.params.id)
-    if (!resData) {
-      return res.status(404).send({ success: false, message: `Not Found.` })
-    }
-    return res
-      .status(200)
-      .send({ success: true, message: `User deleted successful.` })
-  }
-  res.status(400).send({ success: false, message: 'Bad request.' })
+  return res
+    .status(200)
+    .send({ success: true, message: `User deleted successful.` })
 }

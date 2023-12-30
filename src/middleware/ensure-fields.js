@@ -4,7 +4,9 @@ const customSanitizers = {
   toLowerCase: (value) => value?.toString().toLocaleLowerCase(),
 }
 
-const customValidators = {}
+const customValidators = {
+  isMongoId: (value) => validateCustomField(value),
+}
 
 /**
  * A factory for request-validation middleware stacks to be put before any
@@ -46,6 +48,29 @@ export default function ensureFields(schema, { withPagination, limitTo } = {}) {
 
 // Internal helpers
 // ----------------
+
+const validateCustomField = (value) => {
+  // Check if it's a string of 12 bytes
+  if (/^[a-fA-F0-9]{24}$/.test(value)) {
+    return true
+  }
+
+  // Check if it's a string of 24 hex characters
+  if (
+    typeof value === 'string' &&
+    value.length === 24 &&
+    /^[a-fA-F0-9]+$/.test(value)
+  ) {
+    return true
+  }
+
+  // Check if it's an integer
+  if (Number.isInteger(value)) {
+    return true
+  }
+
+  return false
+}
 
 /**
  * Adjusts a given schema to ensure all its root-property descriptors limit

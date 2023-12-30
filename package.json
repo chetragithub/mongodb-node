@@ -1,12 +1,12 @@
 {
-  "name": "nodejs-express-sequelize-mysql",
+  "name": "restaurant_app",
   "version": "1.0.0",
   "description": "Node.js Rest Apis with Express, Sequelize & MySQL",
   "main": "server.js",
   "scripts": {
     "dev": "nodemon src/server.js",
     "start": "node src/server.js",
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "jest --runInBand",
     "migrate": "npx sequelize-cli db:migrate:undo:all && npx sequelize-cli db:migrate",
     "migration:create": "npx sequelize-cli migration:generate --name "
   },
@@ -28,6 +28,12 @@
     "semi": false,
     "singleQuote": true
   },
+  "transform": {
+    "^.+\\.js$": "babel-jest"
+  },
+  "jest": {
+    "testTimeout": 50000
+  },
   "author": "bezkoder",
   "license": "ISC",
   "dependencies": {
@@ -46,7 +52,15 @@
     "nodemailer": "^6.9.7",
     "nodemon": "^3.0.1",
     "socket.io": "^4.7.2",
+    "supertest": "^6.3.3",
     "ws": "^8.14.2",
     "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.23.3",
+    "@babel/preset-env": "^7.23.3",
+    "@shelf/jest-mongodb": "^4.1.7",
+    "babel-jest": "^29.7.0",
+    "jest": "^29.7.0"
   }
 }

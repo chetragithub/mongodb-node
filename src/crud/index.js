@@ -6,7 +6,7 @@ import middleware from '../middleware/auth.js'
 export default async function initCrud(app) {
   console.log('initCrud')
   const crudConfig = JSON.parse(
-    readFileSync(path.resolve(`${process.cwd()}/config/newCrud.json`))
+    readFileSync(path.resolve(`${process.cwd()}/config/crud.json`))
   )
   for (const table in crudConfig.tables) {
     console.log(`/${table}`)

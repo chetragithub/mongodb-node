@@ -1,18 +1,26 @@
 import { Router } from 'express'
 import productService from '../services/products.js'
 import ensureFields from '../middleware/ensure-fields.js'
+import ensurePermissions from '../middleware/ensure-roles.js'
 
 export default function initRoutes() {
   const router = new Router()
 
-  router.get('/', productService.getAll)
+  router.get(
+    '/',
+    ensurePermissions({ RESTAURANT_OWNER: 'GET', WAITER: 'GET' }),
+    productService.getAll
+  )
   router.get(
     '/:id',
+    ensurePermissions({ RESTAURANT_OWNER: 'GET', WAITER: 'GET' }),
     ensureFields(
       {
         id: {
           notEmpty: true,
-          isLength: { options: { max: 24, min: 24 } },
+          custom: {
+            options: 'isMongoId',
+          },
         },
       },
       { limitTo: ['params'] }
@@ -21,6 +29,7 @@ export default function initRoutes() {
   )
   router.post(
     '/',
+    ensurePermissions({ RESTAURANT_OWNER: 'POST' }),
     ensureFields(
       {
         category_id: {
@@ -71,6 +80,7 @@ export default function initRoutes() {
   )
   router.put(
     '/:id',
+    ensurePermissions({ RESTAURANT_OWNER: 'PUT' }),
     ensureFields(
       {
         id: {
@@ -132,6 +142,7 @@ export default function initRoutes() {
   )
   router.delete(
     '/:id',
+    ensurePermissions({ RESTAURANT_OWNER: 'DELETE' }),
     ensureFields(
       {
         id: {

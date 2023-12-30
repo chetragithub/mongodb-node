@@ -1,11 +1,13 @@
 import { Router } from 'express'
 import authService from '../services/auth.js'
 import ensureFields from '../middleware/ensure-fields.js'
+import ensurePermissions from '../middleware/ensure-roles.js'
 
 export default function initRoutes(middleware) {
   const router = Router()
   router.post(
     '/register',
+    ensurePermissions({ RESTAURANT_OWNER: 'POST' }),
     ensureFields(
       {
         first_name: {
@@ -116,7 +118,12 @@ export default function initRoutes(middleware) {
     authService.changePwd
   )
   router.get('/user', middleware, authService.mySelf)
-  router.get('/staff', middleware, authService.getStaff)
+  router.get(
+    '/staff',
+    middleware,
+    ensurePermissions({ RESTAURANT_OWNER: 'GET' }),
+    authService.getStaff
+  )
   router.put(
     '/user/:id',
     middleware,
@@ -158,6 +165,7 @@ export default function initRoutes(middleware) {
   )
   router.delete(
     '/staff/:id',
+    ensurePermissions({ RESTAURANT_OWNER: 'DELETE' }),
     middleware,
     ensureFields(
       {

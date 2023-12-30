@@ -1,7 +1,4 @@
 import models from '../models/index.js'
-import { snakeToCamel, getDefinedValues } from '../helpers/index.js'
-import { validRole } from '../utils/role.js'
-
 const { products, productCustomizes, user } = models
 export default {
   getAll,
@@ -20,18 +17,21 @@ async function getAll(req, res) {
   res.send({ success: true, message: `Get all products successful.`, data: resData })
 }
 async function getById(req, res) {
-  if (req.params.id.length === 24) {
-    const resData = await products.findByIdAndDelete(req.params.id)
-    if (!resData) {
-      return res.status(404).send({ success: false, message: `Not Found.` })
-    }
-    return res.status(200).send({ success: true, message: `Get ${tableName} successful.`, data: resData })
+  const product = await products.findOne({
+    _id: req.params.id,
+    store_id: req.user.store_id,
+    disabled: false,
+  })
+  if (!product) {
+    return res.status(404).send({ success: false, message: `Not Found.` })
   }
-  res.status(400).send({ success: false, message: "Bad request." })
+  return res.status(200).send({
+    success: true,
+    message: `Get product successful.`,
+    data: product,
+  })
 }
 async function create(req, res) {
-  const validRoleRe = validRole(req.user.role_name)
-  if (!validRoleRe.success) return res.status(403).send(validRoleRe)
   const productData = { ...req.body }
   productData.store_id = req.user.store_id
   productData.product_customizes = []
@@ -42,43 +42,63 @@ async function create(req, res) {
     const resProdCus = await productCustomizes.create(prodCus)
     productData.product_customizes.push(resProdCus.id)
   }
-  await products.findByIdAndUpdate(resProduct.id, { product_customizes: productData.product_customizes})
-  res.send({ success: true, message: `Product created successful.`, data: req.body })
+  await products.findByIdAndUpdate(resProduct.id, {
+    product_customizes: productData.product_customizes,
+  })
+  res.send({
+    success: true,
+    message: `Product created successful.`,
+    data: req.body,
+  })
 }
 async function update(req, res) {
-  const validRoleRe = validRole(req.user.role_name)
-  if (!validRoleRe.success) {
-    return res.status(403).send(validRoleRe)
+  const product = await products.findOne({
+    _id: req.params.id,
+    store_id: req.user.store_id,
+    disabled: false,
+  })
+  if (!product) {
+    return res.status(404).send({ success: false, message: `Not Found.` })
   }
-  if (req.params.id.length === 24) {
-    const resProd = await products.findById(req.params.id)
-    if (!resProd) {
-      return res.status(404).send({ success: false, message: `Not Found.` })
+  for (const prodCus of req.body.product_customizes) {
+    if (prodCus.product_customize_id) {
+      await productCustomizes.findByIdAndUpdate(
+        prodCus.product_customize_id,
+        prodCus
+      )
+    } else {
+      const resProdCus = await productCustomizes.create({
+        ...prodCus,
+        product_id: req.params.id,
+      })
+      product.product_customizes.push(resProdCus.id)
     }
-    for (const prodCus of req.body.product_customizes) {
-      if (prodCus.product_customize_id) {
-        await productCustomizes.findByIdAndUpdate(prodCus.product_customize_id, prodCus)
-      } else {
-        const resProdCus = await productCustomizes.create({ ...prodCus, product_id: req.params.id})
-        resProd.product_customizes.push(resProdCus.id)
-      }
-    }
-    req.body.product_customizes = resProd.product_customizes
-    await products.findByIdAndUpdate(req.params.id, req.body)
-    return res.status(200).send({ success: true, message: `Product updated successful.`, data: await products.findById(req.params.id).populate('category_id product_customizes') })
   }
-  res.status(400).send({ success: false, message: "Bad request." })
+  req.body.product_customizes = product.product_customizes
+  await products.findByIdAndUpdate(req.params.id, req.body)
+  return res.status(200).send({
+    success: true,
+    message: `Product updated successful.`,
+    data: await products
+      .findById(req.params.id)
+      .populate('category_id product_customizes'),
+  })
 }
 async function destroy(req, res) {
-  const validRoleRe = validRole(req.user.role_name)
-  if (!validRoleRe.success) return res.status(403).send(validRoleRe)
-  if (req.params.id.length === 24) {
-    const resData = await products.findByIdAndUpdate(req.params.id, { disabled: true })
-    if (!resData) {
-      return res.status(404).send({ success: false, message: `Not Found.` })
+  const product = await products.findOneAndUpdate(
+    {
+      _id: req.params.id,
+      store_id: req.user.store_id,
+      disabled: false,
+    },
+    {
+      disabled: true,
     }
-    // await productCustomizes.deleteMany({ product_id: req.params.id })
-    return res.status(200).send({ success: true, message: `Product deleted successful.` })
+  )
+  if (!product) {
+    return res.status(404).send({ success: false, message: `Not Found.` })
   }
-  res.status(400).send({ success: false, message: "Bad request." })
+  return res
+    .status(200)
+    .send({ success: true, message: `Product deleted successful.` })
 }

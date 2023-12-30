@@ -1,12 +1,14 @@
 import { Router } from 'express'
 import reportService from '../services/reports.js'
 import ensureFields from '../middleware/ensure-fields.js'
+import ensurePermissions from '../middleware/ensure-roles.js'
 
 export default function initRoutes() {
   const router = new Router()
 
   router.get(
     '/money',
+    ensurePermissions({ RESTAURANT_OWNER: 'GET' }),
     ensureFields(
       {
         year: {
@@ -21,6 +23,7 @@ export default function initRoutes() {
   )
   router.get(
     '/product',
+    ensurePermissions({ RESTAURANT_OWNER: 'GET' }),
     ensureFields(
       {
         month: {
