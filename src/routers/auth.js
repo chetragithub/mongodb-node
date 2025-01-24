@@ -165,8 +165,8 @@ export default function initRoutes(middleware) {
   )
   router.delete(
     '/staff/:id',
-    middleware,
     ensurePermissions({ RESTAURANT_OWNER: 'DELETE' }),
+    middleware,
     ensureFields(
       {
         id: {
